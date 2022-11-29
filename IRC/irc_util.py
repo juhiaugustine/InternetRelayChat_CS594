@@ -35,7 +35,8 @@ INSTRUCTIONS = b'Instructions:\n'\
 
 LIST_ROOMS_AND_MEMBERS_MESSAGE = 'List of current rooms and members.\n'
 WELCOME_MESSAGE = b'Welcome to Social Intents.\nEnter your name:\n'
-LEAVE_ROOM_ERROR = "The room you've entered doesn't exist.\nPlease check the name.\n"
+LEAVE_ROOM_ERROR = "You’re not a part of the room.\n"
+ROOM_DOESNT_EXIST = "Entered room doesn't exist \n"
 SWITCH_ROOM_ERROR = "You are not a part of the room.\nJoin the room before switching.\n"
 NO_ACTIVE_ROOMS_MESSAGE = 'There are no active rooms. Create your own room!\n' \
                 + 'Use [<join> room_name] to create a room.\n'
@@ -116,14 +117,17 @@ class IRC_Chat:
         elif LEAVE in message:
             if len(message.split()) >= 2: # error check
                 room_name = message.split()[1]
-                if user.name + '-' + room_name in self.room_member_map:
-                    del self.room_member_map[user.name + '-' + user.current_room]
-                    self.rooms[room_name].remove_user(user)
-                    print("User: " + user.name + " has left " + room_name + '\n')
-                    if len(self.rooms[room_name].members) == 0:
-                        del self.rooms[room_name]
+                if not room_name in self.rooms:
+                    user.socket.sendall(ROOM_DOESNT_EXIST.encode())
                 else:
-                    user.socket.sendall(LEAVE_ROOM_ERROR.encode())
+                    if user.name + '-' + room_name in self.room_member_map:
+                        del self.room_member_map[user.name + '-' + user.current_room]
+                        self.rooms[room_name].remove_user(user)
+                        print("User: " + user.name + " has left " + room_name + '\n')
+                        if len(self.rooms[room_name].members) == 0:
+                            del self.rooms[room_name]
+                    else:
+                        user.socket.sendall(LEAVE_ROOM_ERROR.encode())
             else:
                 user.socket.sendall(INSTRUCTIONS)
 
